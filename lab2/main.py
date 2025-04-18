@@ -21,7 +21,7 @@ def main():
                     month = int(input("Enter the month number (1-12): ")) # Get user input for month
                     show_season(month)
                 except ValueError:
-                    print("❌ Error: please enter a valid number")
+                    print("❌ Error: please enter a valid number") # Invalid input handling
                 
                 if not ask_to_continue(): break
         elif choice == "2": # Check if a year is a leap year
@@ -79,6 +79,21 @@ def main():
             while True:
                 random_date = generate_random_date()
                 print(f"\n🎲 Generated random date: {random_date}")
+                
+                if not ask_to_continue(): break
+        elif choice == "6": # Calculate days between dates
+            while True:
+                try:
+                    print("\nEnter dates in format dd.mm.yyyy")
+                    date1 = input("Enter first date: ").strip()
+                    date2 = input("Enter second date: ").strip()
+                    
+                    days = days_between_dates(date1, date2)
+                    if days is not None:
+                        print(f"✅ Days between dates: {days}")
+                        
+                except ValueError:
+                    print("❌ Error: Please enter valid dates")
                 
                 if not ask_to_continue(): break
         else:
