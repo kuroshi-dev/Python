@@ -1,0 +1,456 @@
+import os
+import time
+from typing import Tuple, List
+
+from managers.student_manager import StudentManager
+from interface.ui import UserInterface
+
+class Logger:
+    def __init__(self):
+        pass
+
+    def print(self, message: str, emoji_type: str = None) -> None:
+        """
+        Print a message with optional emoji.
+
+        Available emoji types:
+            'succ'    (✅)  - Success message
+            'err'     (❌)  - Error message
+            'setup'   (🔧)  - Setup/configuration
+            'folder'  (📁)  - Folder operations
+            'check'   (✔️)  - Check/verification
+            'exists'  (☑️ )  - Existence check
+            'search'  (🔍)  - Search operations
+            'edit'    (✏️)  - Edit operations
+            'exit'    (🚪)  - Exit/termination
+            'attent'  (❗)  - Attention message
+            'warn'    (⚠️)  - Warning message
+            'again'  (🔄)  - Repeat/loop message
+
+        Args:
+            message (str): The message to be printed
+            emoji_type (str, optional): Type of emoji to prepend to message. Defaults to None.
+
+        Returns:
+            None: This method prints to stdout and doesn't return anything
+
+        Note:
+            If verbose mode is disabled, the message will be printed without emoji 
+            regardless of the emoji_type parameter.
+        """
+
+        emojis = {
+            'succ': '✅',
+            'err': '❌ Error: ',
+            'setup': '🔧',
+            'folder': '📁',
+            'check': '✔️',
+            'exists': '☑️',
+            'again': '🔄',
+            'search': '🔍',
+            'edit': '✏️ ',
+            'exit': '🚪',
+            'attent': '❗',
+            'warn': '⚠️',
+        }
+        
+        emoji = emojis.get(emoji_type, '')
+        print(f"{emoji} {message}" if emoji else message)
+
+class FileManager:
+    def __init__(self, directory: str, logger: Logger):
+        self.directory = directory
+        self.log = logger
+        self._ensure_directory_exists()
+
+    def _ensure_directory_exists(self):
+        """Ensure the directory exists, create it if not."""
+
+        if not os.path.exists(self.directory):
+            os.makedirs(self.directory)
+            self.log.print("Created new directory", "setup")
+        else:
+            self.log.print("Directory already exists", "exists")
+
+    def create_group_file(self, group_name: str):
+        """Create a new group file with the specified group name."""
+
+        self.log.print(f"Creating group file for '{group_name}'...", "folder")
+        group_path = os.path.join(self.directory, f"{group_name}.txt")
+
+        if not os.path.exists(group_path):
+            with open(group_path, 'w') as file:
+                file.write(f"Students\nGroup: {group_name}\n\n")
+            self.log.print(f"Group file '{group_name}.txt' created successfully.", "succ")
+        else:
+            self.log.print(f"Group file '{group_name}.txt' already exists.", "exists")
+
+    def group_exists(self, group_name: str) -> bool:
+        """Check if a group exists."""
+        group_path = os.path.join(self.directory, f"{group_name}.txt")
+        exists = os.path.exists(group_path)
+        if not exists:
+            self.log.print(f"Group {group_name} does not exist", "err")
+        return exists
+    
+    def has_duplicate_name(self, group_name: str, student_name: str) -> bool:
+        """Check if a student name already exists in the group file."""
+        group_path = os.path.join(self.directory, f"{group_name}.txt")
+        
+        if not os.path.exists(group_path):
+            return False
+            
+        try:
+            with open(group_path, 'r') as file:
+                for line in file:
+                    if line.strip() and line[0].isdigit():
+                        # Split the line to get the student name
+                        existing_name = line.split('.')[1].split('\t')[0].strip()
+                        if existing_name.lower() == student_name.lower():
+                            return True
+            return False
+        except Exception as e:
+            self.log.print(f"Error checking for duplicates: {str(e)}", "err")
+            return False
+        
+    def show_group_file(self, group_name: str) -> bool:
+        """Display contents of a group file."""
+        if not self.group_exists(group_name):
+            return False
+            
+        self.log.print(f"Reading group file '{group_name}'...", "search")
+        group_path = os.path.join(self.directory, f"{group_name}.txt")
+            
+        try:
+            with open(group_path, 'r') as file:
+                print("\nFile contents:")
+                print("-" * 40)
+                print(file.read().strip())
+                print("-" * 40 + "\n")
+            return True
+        except Exception as e:
+            self.log.print(f"Error reading file: {str(e)}", "err")
+            return False
+        
+    def search_files(self, pattern: str = "") -> List[str]:
+        """Search for files matching the specified pattern in the directory."""
+        self.log.print(f"Searching for files matching pattern: '{pattern}'...", "search")
+        found_files = []
+        
+        for filename in os.listdir(self.directory):
+            if filename.endswith('.txt') and pattern.lower() in filename.lower():
+                found_files.append(filename)
+        
+        return found_files
+    
+    def search_in_file(self, group_name: str, search_term: str) -> List[str]:
+        """Search for a specific term in the specified group file."""
+        self.log.print(f"Searching for '{search_term}' in group {group_name}...", "search")
+        results = []
+        
+        group_path = os.path.join(self.directory, f"{group_name}.txt")
+        if not os.path.exists(group_path):
+            self.log.print(f"Group file '{group_name}.txt' does not exist", "err")
+            return results
+            
+        with open(group_path, 'r') as file:
+            for line in file:
+                if line.strip() and search_term.lower() in line.lower():
+                    results.append(line.strip())
+        
+        return results
+
+    def sort_by_gpa(self, group_name: str):
+        """Sort students in the specified group by GPA."""
+        self.log.print(f"Sorting students in group {group_name} by GPA...", "edit")
+        group_path = os.path.join(self.directory, f"{group_name}.txt")
+        
+        if not os.path.exists(group_path):
+            self.log.print(f"Group file '{group_name}.txt' does not exist", "err")
+            return False
+            
+        try:
+            with open(group_path, 'r') as file:
+                lines = file.readlines()
+
+            header = []
+            students = []
+            for line in lines:
+                if line.strip() and line[0].isdigit(): # Check if line starts with a number (ID)
+                    parts = line.split('.')
+                    name_gpa = parts[1].strip().split('\t')
+                    name = name_gpa[0].strip()
+                    gpa = float(name_gpa[1].strip())
+                    students.append((name, gpa, line))
+                else:
+                    header.append(line)
+            
+            students.sort(key=lambda x: x[1], reverse=True) # Sort by GPA in descending order
+            
+            with open(group_path, 'w') as file: # Write sorted data back to file
+                file.writelines(header)
+                for index, student in enumerate(students, 1):
+                    name, gpa, _ = student
+                    file.write(f"{index}. {name}\t{gpa}\n")
+            
+            self.log.print(f"Successfully sorted students in group {group_name} by GPA", "succ")
+            return True
+            
+        except Exception as e:
+            self.log.print(f"Error sorting file: {str(e)}", "err")
+            return False
+        
+class Student:
+    def __init__(self, name: str, gpa: float):
+        self.name = name
+        self.gpa = gpa
+
+    @staticmethod
+    def validate_student_data(name: str, gpa: float) -> Tuple[bool, str]:
+        if not all(c.isalpha() or c.isspace() for c in name):
+            return False, "Student name should contain only letters and spaces"
+        try:
+            gpa = float(gpa)
+            if not 0.0 <= gpa <= 100.0:
+                return False, "GPA must be between 0.0 and 100.0"
+        except ValueError:
+            return False, "GPA must be a valid number"
+        return True, ""
+
+class StudentManager:
+    def __init__(self, directory: str = "groups"):
+        self.log = Logger()
+        self.file_manager = FileManager(directory, self.log)
+        self._setup_logging()
+
+    def _setup_logging(self):
+        """Initialize and log program setup."""
+        self.log.print("Initializing Student Manager", "setup")
+        time.sleep(0.5)
+        self.log.print(f"Working directory: {os.path.abspath(self.file_manager.directory)}", "folder")
+        time.sleep(0.5)
+        
+        # Check write permissions
+        if os.access(self.file_manager.directory, os.W_OK):
+            self.log.print("Write permissions verified", "check")
+        else:
+            self.log.print("No write permissions in directory", "warn")
+        time.sleep(0.5)
+            
+        # Check for existing files
+        existing_files = len([f for f in os.listdir(self.file_manager.directory) if f.endswith('.txt')])
+        self.log.print(f"Found {existing_files} existing group file(s)", "exists")
+        time.sleep(0.5)
+        self.log.print("Setup complete", "succ")
+
+    def create_group_file(self, *group_names: str):
+        """Create group files for the specified group names."""
+        self.log.print("Creating group files...", "folder")
+        for group_name in group_names:
+            self.file_manager.create_group_file(group_name)
+
+    def add_student(self, group_name: str, student_name: str, gpa: float = 0.0):
+        """Add a student to the specified group."""
+        if not self.file_manager.group_exists(group_name):
+            return
+        
+        if self.file_manager.has_duplicate_name(group_name, student_name):
+            self.log.print(f"Student with name '{student_name}' already exists in group {group_name}", "warn")
+            return
+        
+        self.log.print(f"Adding student '{student_name}' with GPA {gpa} to group '{group_name}'...", "edit")
+        valid, message = Student.validate_student_data(student_name, gpa)
+        if not valid:
+            self.log.print(message, "err")
+            return
+
+        student_id = 1
+        try:
+            group_path = os.path.join(self.file_manager.directory, f"{group_name}.txt")
+            with open(group_path, 'r') as file:
+                for line in file:
+                    if line.strip() and line[0].isdigit():
+                        current_id = int(line.split('.')[0])
+                        student_id = max(student_id, current_id + 1)
+
+            with open(group_path, 'a') as file:
+                file.write(f"{student_id}. {student_name}\t{gpa}\n")
+            self.log.print(f"Added student '{student_name}' to group {group_name}", "succ")
+        except Exception as e:
+            self.log.print(f"Error adding student: {str(e)}", "err")
+
+    def delete_student(self, group_name: str, student_identifier: str):
+        """Delete a student from the specified group by name or ID."""
+        if not self.file_manager.group_exists(group_name):
+            return
+            
+        try:
+            group_path = os.path.join(self.file_manager.directory, f"{group_name}.txt")
+            with open(group_path, 'r') as file:
+                lines = file.readlines()
+
+            found = False
+            new_lines = []
+            for line in lines:
+                if not line.strip():
+                    new_lines.append(line)
+                    continue
+                
+                if not line[0].isdigit():
+                    new_lines.append(line)
+                    continue
+                    
+                # Check if line matches either ID or name
+                student_id = line.split('.')[0].strip()
+                student_entry = line.split('.', 1)[1].strip()
+                
+                if student_identifier == student_id or student_identifier in student_entry:
+                    found = True
+                    continue
+                new_lines.append(line)
+
+            if not found:
+                self.log.print(f"Student with identifier '{student_identifier}' not found in group {group_name}", "err")
+                return
+           
+            with open(group_path, 'w') as file:
+                file.writelines(new_lines)
+
+            self.log.print(f"Deleted student with identifier '{student_identifier}' from group {group_name}", "succ")
+            
+        except Exception as e:
+            self.log.print(f"Error deleting student: {str(e)}", "err")
+
+class UserInterface:
+    def __init__(self, student_manager: StudentManager):
+        self.student_manager = student_manager
+
+    def show_menu(self):
+        """Display the main menu and handle user input."""
+        self.student_manager.log.print("Main Menu", "setup")
+        menu_options = [
+            "📖 1. Read student data from group",
+            "✏️  2. Add student to group",
+            "❌ 3. Delete student from group",
+            "📁 4. Search files",
+            "🔍 5. Search student in group",
+            "📊 6. Sort students by GPA",
+            "🚪 0. Exit"
+        ]
+
+        os.system('cls')
+        print("\nLab 3 by Buliukin Volodimir | Group: KN-24 | Variant: 3")
+        print("\n.・。.・゜✭・.・✫・゜・。.・゜✭・.・")
+        for option in menu_options:
+            print(f"  ✧ {option}")
+        print(".・。.・゜✭・.・✫・゜・。.・゜✭・.・ ")
+        self.handle_menu_choice()
+
+    def handle_menu_choice(self, choice=None):
+        try:
+            if choice is None:
+                choice = input(f"\n✨ Enter your choice (0-6): ")
+            if choice == "0":
+                self.student_manager.log.print("Exiting program...", "exit")
+                exit()
+            elif choice == "1":
+                os.system('cls')
+                group = input("Enter group number: ")
+                
+                self.student_manager.file_manager.show_group_file(group)
+
+                if self.ask_to_continue() == True:
+                    self.handle_menu_choice("1")
+                else: self.show_menu()
+            elif choice == "2":
+                os.system('cls')
+                
+                group = input("Enter group number: ")
+                self.student_manager.file_manager.show_group_file(group)
+                name = input("Enter student name: ")
+                gpa = float(input("Enter student GPA: "))
+
+                self.student_manager.add_student(group, name, gpa)
+                if self.ask_to_continue():
+                    self.handle_menu_choice()
+                self.show_menu()
+            elif choice == "3":
+                os.system('cls')
+
+                group = input("Enter group number: ")
+                self.student_manager.file_manager.show_group_file(group)
+                self.student_manager.log.print("Enter student ID or name to delete:", "search")
+                name = input("")
+                self.student_manager.delete_student(group, name)
+                if self.ask_to_continue():
+                    self.handle_menu_choice("3")
+                self.show_menu()
+            elif choice == "4":
+                os.system('cls')
+                pattern = input("Enter search pattern (or press Enter for all files): ")
+                files = self.student_manager.file_manager.search_files(pattern)
+                if files:
+                    print("\nFound files:")
+                    for file in files:
+                        print(f"📄 {file}")
+                else:
+                    self.student_manager.log.print("No files found", "warn")
+                
+                if self.ask_to_continue():
+                    self.handle_menu_choice("4")
+                self.show_menu()
+
+            elif choice == "5":
+                os.system('cls')
+                group = input("Enter group number: ")
+                search_term = input("Enter search term: ")
+                results = self.student_manager.file_manager.search_in_file(group, search_term)
+                
+                if results:
+                    print("\nSearch results:")
+                    for result in results:
+                        print(f"➜ {result}")
+                else:
+                    self.student_manager.log.print("No matches found", "warn")
+                
+                if self.ask_to_continue():
+                    self.handle_menu_choice("5")
+                self.show_menu()
+
+            elif choice == "6":
+                os.system('cls')
+                group = input("Enter group number: ")
+                if self.student_manager.file_manager.sort_by_gpa(group):
+                    self.student_manager.file_manager.show_group_file(group)
+                
+                if self.ask_to_continue():
+                    self.handle_menu_choice("6")
+                self.show_menu()
+            else:
+                self.student_manager.log.print("Invalid choice! Please try again.", "warning")
+                self.show_menu()
+
+        except ValueError as e:
+            self.student_manager.log.print(f"Invalid input: {str(e)}", "err")
+            self.show_menu()
+
+    @staticmethod
+    def ask_to_continue() -> bool:
+        print("🔄 " + "Do you want to call this function again? (y/n): ")
+        again = input().strip().lower()
+        return again == "y"
+        
+
+def main():
+    os.system('cls')
+    print("Lab 3 by Buliukin Volodimir | Group: KN-24 | Variant: 3\n.・。.・゜✭・.・✫・゜・。.・゜✭・.・")
+    print("Welcome to the Student Manager Program!\nThis program is designed to manage student data in groups.\n")
+
+    manager = StudentManager()
+    manager.create_group_file("121", "122", "123")
+
+    ui = UserInterface(manager)
+    ui.show_menu()
+
+if __name__ == "__main__":
+    main()
