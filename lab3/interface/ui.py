@@ -2,12 +2,68 @@ import os
 from managers.student_manager import StudentManager
 
 class UserInterface:
-    """Class to handle user interface interactions for the student management system."""
+    """Class to handle user interface for student management system.
+    
+    This class provides a text-based interface for users to interact with the student
+    management system, offering various operations for managing student data.
+
+    ----------------------------------------
+
+    Attributes:
+        student_manager (StudentManager): Handles core functionality of student management
+
+    Methods:
+        show_menu(): Displays main menu and handles navigation
+        handle_menu_choice(choice): Processes user input and executes operations
+        ask_to_continue(): Prompts for operation repetition
+
+    Menu Options:
+        1. 📖 Read student data from group
+        2. ✏️ Add student to group
+        3. ❌ Delete student from group
+        4. 📁 Search files
+        5. 🔍 Search student in group
+        6. 📊 Sort students by GPA
+        0. 🚪 Exit
+
+    Examples:
+        >>> ui = UserInterface(student_manager)
+        >>> ui.show_menu()
+
+    Note:
+        Uses emoji icons and Unicode characters for better visual representation
+    """
     def __init__(self, student_manager: StudentManager):
         self.student_manager = student_manager
 
     def show_menu(self):
-        """Display the main menu and handle user input."""
+        """Display the main menu interface.
+
+        This method presents a graphical menu interface with various options
+        for managing student data.
+
+        ----------------------------------------
+
+        Side Effects:
+            - Clears console screen
+            - Prints menu options
+            - Handles user input
+
+        Note:
+            Uses Unicode characters for decorative borders and emoji icons
+
+        Examples:
+            >>> ui = UserInterface(student_manager)
+            >>> ui.show_menu()
+            🔧 Main Menu
+            
+            Lab 3 by Buliukin Volodimir | Group: KN-24 | Variant: 3
+            .・。.・゜✭・.・✫・゜・。.・゜✭・.・
+              ✧ 📖 1. Read student data from group
+              ✧ ✏️ 2. Add student to group
+              ... other menu options...
+            .・。.・゜✭・.・✫・゜・。.・゜✭・.・
+        """
         self.student_manager.log.print("Main Menu", "setup")
         menu_options = [
             "📖 1. Read student data from group",
@@ -28,6 +84,25 @@ class UserInterface:
         self.handle_menu_choice()
 
     def handle_menu_choice(self, choice=None):
+        """Process user's menu selection and execute corresponding operation.
+
+        This method handles the logic for each menu option, including input
+        validation and error handling.
+
+        ----------------------------------------
+
+        Args:
+            choice (str, optional): Menu option number. Defaults to None.
+                                  Valid choices are "0" through "6".
+
+        Side Effects:
+            - Executes selected operation
+            - Handles navigation between menus
+            - Shows error messages for invalid inputs
+
+        Raises:
+            ValueError: If input values are invalid
+        """
         try:
             if choice is None:
                 choice = input(f"\n✨ Enter your choice (0-6): ")
@@ -115,9 +190,22 @@ class UserInterface:
             self.student_manager.log.print(f"Invalid input: {str(e)}", "err")
             self.show_menu()
 
-    @staticmethod
+    @staticmethod # Static method to ask user if they want to continue
     def ask_to_continue() -> bool:
+        """Prompt user to repeat current operation.
+
+        This method asks if the user wants to perform the same operation again.
+
+        ----------------------------------------
+
+        Returns:
+            bool: True if user wants to continue, False otherwise
+
+        Side Effects:
+            - Prints prompt message
+            - Waits for user input
+        """
         print("🔄 " + "Do you want to call this function again? (y/n): ")
         again = input().strip().lower()
         return again == "y"
-        
+

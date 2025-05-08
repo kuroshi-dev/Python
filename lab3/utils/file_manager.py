@@ -3,14 +3,62 @@ from typing import List
 from utils.logger import Logger
 
 class FileManager:
-    """Class to manage file operations for student groups."""
+    """Class to manage file operations for student groups.
+
+    This class provides functionality to manage student group files, including creation,
+    reading, and manipulation of group data files in a specified directory.
+
+    ----------------------------------------
+
+    Args:
+        directory (str): The base directory path where group files are stored.
+        log (Logger): Logger instance for recording operations and errors.
+
+    Methods:
+        _ensure_directory_exists(): `Creates the directory if it doesn't exist.`
+        create_group_file(group_name: str): `Creates a new file for a student group.`
+        group_exists(group_name: str) -> bool: `Checks if a group file exists.`
+        has_duplicate_name(group_name: str, student_name: str) -> bool: `Checks for duplicate student names in a group.`
+        show_group_file(group_name: str) -> bool: `Displays the contents of a group file.`
+        sort_by_gpa(group_name: str) -> bool: `Sorts students in a group by their GPA.`
+
+    Note:
+        File Format:
+            Each group file is a text file with the following structure:
+            - Header with group information
+            - Student entries in format: "index. | gpa | name"
+
+    Examples:
+        >>> file_manager = FileManager("./groups", logger)
+        >>> file_manager.create_group_file("121")
+        >>> file_manager.show_group_file("121")
+        >>> file_manager.sort_by_gpa("121")
+
+    Raises:
+        OSError: If there are issues with file/directory operations
+        Exception: For general errors during file operations
+    """
     def __init__(self, directory: str, logger: Logger):
         self.directory = directory
         self.log = logger
         self._ensure_directory_exists()
 
     def _ensure_directory_exists(self):
-        """Ensure the directory exists, create it if not."""
+        """
+        Ensures that the specified directory exists, creating it if necessary.
+
+        This method checks if the directory specified in self.directory exists.
+        If not, it creates the directory and logs the creation.
+
+        ----------------------------------------
+
+        Side Effects:
+            - Creates a new directory if it doesn't exist
+            - Logs messages about directory status
+
+        Returns:
+            None
+        """
 
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
@@ -19,7 +67,24 @@ class FileManager:
             self.log.print("Directory already exists", "exists")
 
     def create_group_file(self, group_name: str):
-        """Create a new group file with the specified group name."""
+        """
+        Creates a new file for a student group.
+
+        This method creates a new text file for storing student group data
+        with a specified group name.
+
+        ----------------------------------------
+
+        Args:
+            group_name (str): The name of the group to create
+
+        Side Effects:
+            - Creates a new text file if it doesn't exist
+            - Logs messages about file creation status
+
+        Returns:
+            None
+        """
 
         self.log.print(f"Creating group file for '{group_name}'...", "folder")
         group_path = os.path.join(self.directory, f"{group_name}.txt")
@@ -32,7 +97,19 @@ class FileManager:
             self.log.print(f"Group file '{group_name}.txt' already exists.", "exists")
 
     def group_exists(self, group_name: str) -> bool:
-        """Check if a group exists."""
+        """
+        Checks if a group file exists.
+
+        Verifies whether a file for the specified group exists in the directory.
+
+        ----------------------------------------
+
+        Args:
+            group_name (str): The name of the group to check
+
+        Returns:
+            bool: True if the group file exists, False otherwise
+        """
         group_path = os.path.join(self.directory, f"{group_name}.txt")
         exists = os.path.exists(group_path)
         if not exists:
@@ -40,7 +117,23 @@ class FileManager:
         return exists
     
     def has_duplicate_name(self, group_name: str, student_name: str) -> bool:
-        """Check if a student name already exists in the group file."""
+        """
+        Checks for duplicate student names in a group.
+
+        Searches through the specified group file for any matching student names.
+
+        ----------------------------------------
+
+        Args:
+            group_name (str): The name of the group to check
+            student_name (str): The student name to look for
+
+        Returns:
+            bool: True if the name exists in the group, False otherwise
+
+        Raises:
+            Exception: If there are errors reading the file
+        """
         group_path = os.path.join(self.directory, f"{group_name}.txt")
         
         if not os.path.exists(group_path):
@@ -60,7 +153,23 @@ class FileManager:
             return False
         
     def show_group_file(self, group_name: str) -> bool:
-        """Display contents of a group file."""
+        """
+        Displays the contents of a group file.
+
+        Reads and prints the contents of the specified group file.
+
+        ----------------------------------------
+
+        Args:
+            group_name (str): The name of the group to display
+
+        Returns:
+            bool: True if file was successfully displayed, False otherwise
+
+        Side Effects:
+            - Prints file contents to console
+            - Logs operation status
+        """
         if not self.group_exists(group_name):
             return False
             
@@ -78,8 +187,40 @@ class FileManager:
             self.log.print(f"Error reading file: {str(e)}", "err")
             return False
 
-    def sort_by_gpa(self, group_name: str):
-        """Сортировка студентов по среднему баллу."""
+    def sort_by_gpa(self, group_name: str) -> bool:
+        """
+        Sorts students in a group by their GPA.
+
+        Reads the group file, sorts students by GPA in descending order,
+        and writes the sorted data back to the file.
+
+        ----------------------------------------
+
+        Args:
+            group_name (str): The name of the group to sort
+
+        Returns:
+            bool: True if sorting was successful, False otherwise
+
+        Side Effects:
+            - Modifies the group file content
+            - Updates student IDs according to new order
+            - Logs operation status
+
+        Note:
+            Format of student entries: "index. | gpa | name"
+
+        Examples:
+            >>> file_manager = FileManager("groups", logger)
+            >>> file_manager.sort_by_gpa("121")
+            True
+            >>> # File contents before:
+            >>> # 1. |85.5 | John Smith
+            >>> # 2. |90.0 | Emma Davis
+            >>> # File contents after:
+            >>> # 1. |90.0 | Emma Davis
+            >>> # 2. |85.5 | John Smith
+        """
         group_path = os.path.join(self.directory, f"{group_name}.txt")
         
         if not os.path.exists(group_path):
@@ -122,8 +263,8 @@ class FileManager:
             
             with open(group_path, 'w') as file: # Write sorted data back to file
                 file.writelines(header)
-                for index, (_, name, gpa) in enumerate(students, 1):
-                    file.write(f"{index}. \t |{gpa:.1f} \t | {name}\n")
+                for index, (_, name, gpa) in enumerate(students, 1): # Start index from 1
+                    file.write(f"{index}. \t |{gpa:.1f} \t | {name}\n") # Format GPA to one decimal place
             
             self.log.print(f"Group file '{group_name}' sorted by GPA", "succ")
             return True
