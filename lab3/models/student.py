@@ -35,8 +35,8 @@ class Student:
             return False, "Student name should contain only letters and spaces"
         try:
             gpa = float(gpa)
-            if not 0.0 <= gpa <= 100.0:
+            if not (0.0 <= gpa <= 100.0):
                 return False, "GPA must be between 0.0 and 100.0"
         except ValueError:
             return False, "GPA must be a valid number"
-        return True,
+        return True, ""
