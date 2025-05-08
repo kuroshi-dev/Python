@@ -134,7 +134,6 @@ class StudentManager:
             self.log.print(f"Student with name '{student_name}' already exists in group {group_name}", "warn")
             return
         
-        self.log.print(f"Adding student '{student_name}' with GPA {gpa} to group '{group_name}'...", "edit")
         valid, message = Student.validate_student_data(student_name, gpa)
         if not valid:
             self.log.print(message, "err")
