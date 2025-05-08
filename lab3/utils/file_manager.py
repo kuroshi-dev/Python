@@ -87,14 +87,27 @@ class FileManager:
         """
 
         self.log.print(f"Creating group file for '{group_name}'...", "folder")
-        group_path = os.path.join(self.directory, f"{group_name}.txt")
 
-        if not os.path.exists(group_path):
-            with open(group_path, 'w') as file:
-                file.write(f"Students\nGroup: {group_name}\n\n")
-            self.log.print(f"Group file '{group_name}.txt' created successfully.", "succ")
-        else:
-            self.log.print(f"Group file '{group_name}.txt' already exists.", "exists")
+    def search_files(self, pattern: str) -> List[str]:
+        """
+        Searches for files in the directory matching a specified pattern.
+
+        This method searches through the directory for files that match the
+        given pattern and returns a list of matching file names.
+
+        ----------------------------------------
+
+        Args:
+            pattern (str): The search pattern to match file names
+
+        Returns:
+            List[str]: A list of matching file names
+        """
+
+        self.log.print(f"Searching for files with pattern '{pattern}'...", "search")
+        files = [f for f in os.listdir(self.directory) if pattern in f]
+        self.log.print(f"Found {len(files)} files matching '{pattern}'", "succ")
+        return files
 
     def group_exists(self, group_name: str) -> bool:
         """
@@ -151,6 +164,35 @@ class FileManager:
         except Exception as e:
             self.log.print(f"Error checking for duplicates: {str(e)}", "err")
             return False
+        
+    def search_in_file(self, group_name: str, pattern: str) -> List[str]:
+        """
+        Searches for a pattern in a group file.
+
+        This method searches through the specified group file for lines
+        containing the given pattern.
+
+        ----------------------------------------
+
+        Args:
+            group_name (str): The name of the group to search
+            pattern (str): The search pattern
+
+        Returns:
+            List[str]: A list of matching lines from the file
+        """
+        group_path = os.path.join(self.directory, f"{group_name}.txt")
+        
+        if not os.path.exists(group_path):
+            return []
+            
+        try:
+            with open(group_path, 'r') as file:
+                lines = [line.strip() for line in file if pattern.lower() in line.lower()]
+            return lines
+        except Exception as e:
+            self.log.print(f"Error searching in file: {str(e)}", "err")
+            return []
         
     def show_group_file(self, group_name: str) -> bool:
         """

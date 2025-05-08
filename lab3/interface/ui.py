@@ -144,7 +144,11 @@ class UserInterface:
             elif choice == "4":
                 os.system('cls')
                 pattern = input("Enter search pattern (or press Enter for all files): ")
-                files = self.student_manager.file_manager.search_files(pattern)
+                try:
+                    files = self.student_manager.file_manager.search_files(pattern)
+                except Exception as e:
+                    self.student_manager.log.print(f"Error searching files: {str(e)}", "err")
+                    files = []
                 if files:
                     print("\nFound files:")
                     for file in files:
